@@ -586,8 +586,10 @@
     const CHOICES = ['rock', 'paper', 'scissors'];
     const EMOJI   = { rock: '🪨', paper: '📄', scissors: '✂️' };
     const BEATS   = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
-    const MAX_HISTORY = 8;
-    const THINK_MS    = 500; // CPU "thinking" delay in ms
+    const MAX_HISTORY       = 8;
+    const THINK_MS          = 500;   // CPU "thinking" delay in ms
+    const CONFETTI_DURATION = 4000;  // ms before cleaning up confetti particles
+    const CONFETTI_COLORS   = ['#53d8fb', '#e94560', '#a78bfa', '#f5a623', '#fff'];
 
     /* ── State ── */
     const score = loadScore();
@@ -649,7 +651,13 @@
     }
 
     function play(playerPick) {
-      if (busy || matchOver) return;
+      if (busy) return;
+      if (matchOver) {
+        matchBanner.style.animation = 'none';
+        void matchBanner.offsetWidth;
+        matchBanner.style.animation = '';
+        return;
+      }
       busy = true;
       setButtons(true);
 
@@ -675,23 +683,28 @@
         rounds++;
         roundsEl.textContent = rounds;
 
+    /* ── Streak helper ── */
+    function updateStreak(result) {
+      if (result === 'win')  return streak > 0 ? streak + 1 : 1;
+      if (result === 'lose') return streak < 0 ? streak - 1 : -1;
+      return 0;
+    }
+
         /* Score + streak */
         resultMsg.className = 'result-msg';
+        streak = updateStreak(result);
         if (result === 'win') {
           score.player++;
-          streak = streak > 0 ? streak + 1 : 1;
           resultMsg.textContent = '🎉 You win this round!';
           resultMsg.classList.add('win');
           playerDisplay.classList.add('win-glow');
         } else if (result === 'lose') {
           score.cpu++;
-          streak = streak < 0 ? streak - 1 : -1;
           resultMsg.textContent = '😞 CPU wins this round!';
           resultMsg.classList.add('lose');
           cpuDisplay.classList.add('win-glow');
         } else {
           score.draws++;
-          streak = 0;
           resultMsg.textContent = "🤝 It's a draw!";
           resultMsg.classList.add('draw');
         }
@@ -708,8 +721,8 @@
             const playerWon = score.player >= 3;
             matchBanner.textContent = playerWon ? '🏆 You win the match!' : '😢 CPU wins the match!';
             matchBanner.style.background = playerWon
-              ? 'linear-gradient(90deg,#0f3460,#53d8fb)'
-              : 'linear-gradient(90deg,#e94560,#7b1d35)';
+              ? 'linear-gradient(90deg, var(--bg3), var(--blue))'
+              : 'linear-gradient(90deg, var(--red), #7b1d35)';
             matchBanner.classList.add('show');
             if (playerWon) launchConfetti();
           }
@@ -740,7 +753,7 @@
 
     /* ── Confetti ── */
     function launchConfetti() {
-      const colors = ['#53d8fb','#e94560','#a78bfa','#f5a623','#fff'];
+      const colors = CONFETTI_COLORS;
       for (let i = 0; i < 60; i++) {
         const el = document.createElement('div');
         el.className = 'confetti-particle';
@@ -752,23 +765,29 @@
         el.style.animationDelay   = (Math.random() * 0.6) + 's';
         confettiWrap.appendChild(el);
       }
-      setTimeout(() => { confettiWrap.innerHTML = ''; }, 4000);
+      setTimeout(() => { confettiWrap.innerHTML = ''; }, CONFETTI_DURATION);
     }
 
     /* ── Mode buttons ── */
-    document.getElementById('mode-unlimited').addEventListener('click', function () {
+    const modeUnlimitedBtn = document.getElementById('mode-unlimited');
+    const modeBo5Btn       = document.getElementById('mode-bo5');
+
+    function setActiveMode(activeBtn, inactiveBtn) {
+      activeBtn.classList.add('active');
+      activeBtn.setAttribute('aria-pressed', 'true');
+      inactiveBtn.classList.remove('active');
+      inactiveBtn.setAttribute('aria-pressed', 'false');
+    }
+
+    modeUnlimitedBtn.addEventListener('click', () => {
       mode = 'unlimited';
-      this.classList.add('active');    this.setAttribute('aria-pressed', 'true');
-      document.getElementById('mode-bo5').classList.remove('active');
-      document.getElementById('mode-bo5').setAttribute('aria-pressed', 'false');
+      setActiveMode(modeUnlimitedBtn, modeBo5Btn);
       resetAll();
     });
 
-    document.getElementById('mode-bo5').addEventListener('click', function () {
+    modeBo5Btn.addEventListener('click', () => {
       mode = 'bo5';
-      this.classList.add('active');    this.setAttribute('aria-pressed', 'true');
-      document.getElementById('mode-unlimited').classList.remove('active');
-      document.getElementById('mode-unlimited').setAttribute('aria-pressed', 'false');
+      setActiveMode(modeBo5Btn, modeUnlimitedBtn);
       resetAll();
     });
 
