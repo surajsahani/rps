@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Paper Scissors</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.25rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #e94560, #0f3460, #53d8fb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-bottom: 2.5rem;
+      letter-spacing: 1px;
+    }
+
+    /* Score board */
+    .scoreboard {
+      display: flex;
+      gap: 3rem;
+      margin-bottom: 2.5rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 1rem 2.5rem;
+    }
+
+    .score-item {
+      text-align: center;
+    }
+
+    .score-item .label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #aaa;
+    }
+
+    .score-item .value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .score-item.player .value { color: #53d8fb; }
+    .score-item.draws  .value { color: #f5a623; }
+    .score-item.cpu    .value { color: #e94560; }
+
+    /* Battle area */
+    .battle {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 2.5rem;
+      min-height: 130px;
+    }
+
+    .combatant {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .combatant .name {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #aaa;
+    }
+
+    .choice-display {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      background: rgba(255,255,255,0.07);
+      border: 2px solid rgba(255,255,255,0.15);
+      transition: transform 0.3s ease;
+    }
+
+    .choice-display.reveal {
+      animation: pop 0.4s ease;
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(0.5); opacity: 0; }
+      70%  { transform: scale(1.15); }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+
+    .vs {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f5a623;
+    }
+
+    /* Result message */
+    .result-msg {
+      font-size: 1.6rem;
+      font-weight: 700;
+      min-height: 2rem;
+      margin-bottom: 2rem;
+      letter-spacing: 1px;
+      transition: opacity 0.3s;
+    }
+
+    .result-msg.win  { color: #53d8fb; }
+    .result-msg.lose { color: #e94560; }
+    .result-msg.draw { color: #f5a623; }
+
+    /* Choice buttons */
+    .choices {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .choice-btn {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.07);
+      font-size: 2.5rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .choice-btn:hover {
+      transform: scale(1.15);
+      background: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.5);
+    }
+
+    .choice-btn:active {
+      transform: scale(0.95);
+    }
+
+    .choice-btn[data-choice="rock"]     { --accent: #e94560; }
+    .choice-btn[data-choice="paper"]    { --accent: #53d8fb; }
+    .choice-btn[data-choice="scissors"] { --accent: #a78bfa; }
+
+    .choice-btn:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 18px var(--accent);
+    }
+
+    /* Reset button */
+    .reset-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #aaa;
+      padding: 0.5rem 1.5rem;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .reset-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    /* Rules hint */
+    .rules {
+      margin-top: 2rem;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Rock Paper Scissors</h1>
+  <p class="subtitle">Choose your weapon</p>
+
+  <!-- Scoreboard -->
+  <div class="scoreboard">
+    <div class="score-item player">
+      <div class="label">You</div>
+      <div class="value" id="score-player">0</div>
+    </div>
+    <div class="score-item draws">
+      <div class="label">Draws</div>
+      <div class="value" id="score-draws">0</div>
+    </div>
+    <div class="score-item cpu">
+      <div class="label">CPU</div>
+      <div class="value" id="score-cpu">0</div>
+    </div>
+  </div>
+
+  <!-- Battle display -->
+  <div class="battle">
+    <div class="combatant">
+      <div class="name">You</div>
+      <div class="choice-display" id="player-display">❓</div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="combatant">
+      <div class="name">CPU</div>
+      <div class="choice-display" id="cpu-display">❓</div>
+    </div>
+  </div>
+
+  <!-- Result message -->
+  <div class="result-msg" id="result-msg"></div>
+
+  <!-- Choice buttons -->
+  <div class="choices">
+    <button class="choice-btn" data-choice="rock"     aria-label="Rock">🪨</button>
+    <button class="choice-btn" data-choice="paper"    aria-label="Paper">📄</button>
+    <button class="choice-btn" data-choice="scissors" aria-label="Scissors">✂️</button>
+  </div>
+
+  <!-- Reset -->
+  <button class="reset-btn" id="reset-btn">Reset Score</button>
+
+  <p class="rules">🪨 beats ✂️ &nbsp;|&nbsp; 📄 beats 🪨 &nbsp;|&nbsp; ✂️ beats 📄</p>
+
+  <script>
+    const CHOICES = ['rock', 'paper', 'scissors'];
+    const EMOJI   = { rock: '🪨', paper: '📄', scissors: '✂️' };
+
+    const BEATS = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
+
+    const score = { player: 0, cpu: 0, draws: 0 };
+
+    const playerDisplay = document.getElementById('player-display');
+    const cpuDisplay    = document.getElementById('cpu-display');
+    const resultMsg     = document.getElementById('result-msg');
+    const scorePlayer   = document.getElementById('score-player');
+    const scoreCpu      = document.getElementById('score-cpu');
+    const scoreDraws    = document.getElementById('score-draws');
+
+    function cpuChoice() {
+      return CHOICES[Math.floor(Math.random() * CHOICES.length)];
+    }
+
+    function getResult(player, cpu) {
+      if (player === cpu)          return 'draw';
+      if (BEATS[player] === cpu)   return 'win';
+      return 'lose';
+    }
+
+    function animateDisplay(el) {
+      el.classList.remove('reveal');
+      // Force reflow so animation restarts
+      void el.offsetWidth;
+      el.classList.add('reveal');
+    }
+
+    function play(playerPick) {
+      const cpuPick = cpuChoice();
+      const result  = getResult(playerPick, cpuPick);
+
+      // Update displays
+      playerDisplay.textContent = EMOJI[playerPick];
+      cpuDisplay.textContent    = EMOJI[cpuPick];
+      animateDisplay(playerDisplay);
+      animateDisplay(cpuDisplay);
+
+      // Update score & message
+      resultMsg.className = 'result-msg';
+      if (result === 'win') {
+        score.player++;
+        resultMsg.textContent = '🎉 You win!';
+        resultMsg.classList.add('win');
+      } else if (result === 'lose') {
+        score.cpu++;
+        resultMsg.textContent = '😞 CPU wins!';
+        resultMsg.classList.add('lose');
+      } else {
+        score.draws++;
+        resultMsg.textContent = "🤝 It's a draw!";
+        resultMsg.classList.add('draw');
+      }
+
+      scorePlayer.textContent = score.player;
+      scoreCpu.textContent    = score.cpu;
+      scoreDraws.textContent  = score.draws;
+    }
+
+    // Button listeners
+    document.querySelectorAll('.choice-btn').forEach(btn => {
+      btn.addEventListener('click', () => play(btn.dataset.choice));
+    });
+
+    // Keyboard support: R = rock, P = paper, S = scissors
+    document.addEventListener('keydown', e => {
+      const key = e.key.toLowerCase();
+      if (key === 'r') play('rock');
+      if (key === 'p') play('paper');
+      if (key === 's') play('scissors');
+    });
+
+    // Reset
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      score.player = score.cpu = score.draws = 0;
+      scorePlayer.textContent = scoreCpu.textContent = scoreDraws.textContent = '0';
+      playerDisplay.textContent = cpuDisplay.textContent = '❓';
+      resultMsg.textContent = '';
+      resultMsg.className = 'result-msg';
+    });
+  </script>
+</body>
+</html>
